@@ -27,8 +27,6 @@ const (
 	// that carries Registry version info
 	DefaultRegistryVersionHeader = "Docker-Distribution-Api-Version"
 
-	// IndexServer is the v1 registry server used for user auth + account creation
-	IndexServer = DefaultV1Registry + "/v1/"
 	// IndexName is the name of the index
 	IndexName = "docker.io"
 
@@ -39,6 +37,9 @@ const (
 )
 
 var (
+	// IndexServer is the v1 registry server used for user auth + account creation
+	IndexServer = DefaultV1Registry + "/v1/"
+
 	// ErrInvalidRepositoryName is an error returned if the repository name did
 	// not have the correct form
 	ErrInvalidRepositoryName = errors.New("Invalid repository name (ex: \"registry.domain.tld/myrepos\")")
