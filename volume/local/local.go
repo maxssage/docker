@@ -94,6 +94,10 @@ func (r *Root) Create(name string, _ map[string]string) (volume.Volume, error) {
 	r.m.Lock()
 	defer r.m.Unlock()
 
+	if err := validateVolumeName(name); err != nil {
+		return nil, err
+	}
+
 	v, exists := r.volumes[name]
 	if exists {
 		return v, nil

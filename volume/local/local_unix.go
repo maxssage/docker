@@ -27,3 +27,9 @@ func (r *Root) scopedPath(realPath string) bool {
 
 	return false
 }
+
+// validateVolumeName does platform specific validation of the name of the
+// volume being created.
+func validateVolumeName(name string) error {
+	return nil
+}

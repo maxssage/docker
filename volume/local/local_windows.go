@@ -4,8 +4,12 @@
 package local
 
 import (
+	"fmt"
 	"path/filepath"
+	"regexp"
 	"strings"
+
+	"github.com/docker/docker/volume"
 )
 
 // scopedPath verifies that the path where the volume is located
@@ -15,4 +19,14 @@ func (r *Root) scopedPath(realPath string) bool {
 		return true
 	}
 	return false
+}
+
+// validateVolumeName does platform specific validation of the name of the
+// volume being created.
+func validateVolumeName(name string) error {
+	nameExp := regexp.MustCompile(`^` + volume.RXName + `$`)
+	if !nameExp.MatchString(name) {
+		return fmt.Errorf("Volume name '%s' is invalid. Must match regex %s", name, volume.RXName)
+	}
+	return nil
 }
