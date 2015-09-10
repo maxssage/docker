@@ -12,6 +12,7 @@ import (
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/docker/pkg/stringutils"
 	"github.com/docker/docker/pkg/units"
+	"github.com/docker/docker/volume"
 )
 
 var (
@@ -40,7 +41,7 @@ func Parse(cmd *flag.FlagSet, args []string) (*Config, *HostConfig, *flag.FlagSe
 	var (
 		// FIXME: use utils.ListOpts for attach and volumes?
 		flAttach  = opts.NewListOpts(opts.ValidateAttach)
-		flVolumes = opts.NewListOpts(opts.ValidatePath)
+		flVolumes = opts.NewListOpts(nil)
 		flLinks   = opts.NewListOpts(opts.ValidateLink)
 		flEnv     = opts.NewListOpts(opts.ValidateEnv)
 		flLabels  = opts.NewListOpts(opts.ValidateEnv)
@@ -194,22 +195,6 @@ func Parse(cmd *flag.FlagSet, args []string) (*Config, *HostConfig, *flag.FlagSe
 		return nil, nil, cmd, fmt.Errorf("Invalid value: %d. Valid memory swappiness range is 0-100", swappiness)
 	}
 
-	var binds []string
-	// add any bind targets to the list of container volumes
-	for bind := range flVolumes.GetMap() {
-		if arr := strings.Split(bind, ":"); len(arr) > 1 {
-			if arr[1] == "/" {
-				return nil, nil, cmd, fmt.Errorf("Invalid bind mount: destination can't be '/'")
-			}
-			// after creating the bind mount we want to delete it from the flVolumes values because
-			// we do not want bind mounts being committed to image configs
-			binds = append(binds, bind)
-			flVolumes.Delete(bind)
-		} else if bind == "/" {
-			return nil, nil, cmd, fmt.Errorf("Invalid volume: path can't be '/'")
-		}
-	}
-
 	var (
 		parsedArgs = cmd.Args()
 		runCmd     *stringutils.StrSlice
@@ -338,7 +323,14 @@ func Parse(cmd *flag.FlagSet, args []string) (*Config, *HostConfig, *flag.FlagSe
 	}
 
 	hostConfig := &HostConfig{
-		Binds:             binds,
+		// The CLI would have moved any bind mounts (one in which a host directory
+		// is specified from flVolumes (which ends up in config.Volumes) into
+		// HostConfig.Binds. However, with cross-platform support, it it not
+		// possible to uniquely parse the mount spec as it depends on the platform
+		// of the daemon which is not known at this point. Therefore, we defer
+		// this until the Config/HostConfig is extracted by the daemon and always
+		// pass in an empty HostConfig.Binds.
+		Binds:             nil,
 		ContainerIDFile:   *flContainerIDFile,
 		LxcConf:           lxcConf,
 		Memory:            flMemory,
@@ -512,4 +504,32 @@ func ParseDevice(device string) (DeviceMapping, error) {
 		CgroupPermissions: permissions,
 	}
 	return deviceMapping, nil
+}
+
+// ParseVolumesIntoBinds parses any volumes passed by the client and moves any
+// volumes which are in Config.Volumes into HostConfig.Binds.
+func ParseVolumesIntoBinds(c *Config, hc *HostConfig) (*Config, *HostConfig, error) {
+	if c != nil && hc != nil {
+		newVolumes := c.Volumes
+		for bind := range newVolumes {
+			var (
+				mp  *volume.MountPoint
+				err error
+			)
+			if mp, err = volume.ParseMountSpec(bind, hc.VolumeDriver); err != nil {
+				return nil, nil, fmt.Errorf("Unrecognised volume spec: %v", err)
+			}
+			if len(mp.Source) > 0 {
+				// After creating the bind mount (one in which a host directory is specified),
+				// we want to delete it from the Config.Volumes values because we do not want
+				// bind mounts being committed to image configs.
+				// Note the spec can be one of hostdir:containerpath:mode, containerpath,
+				// or hostdir:containerpath
+				hc.Binds = append(hc.Binds, bind)
+				delete(newVolumes, bind)
+			}
+		}
+		c.Volumes = newVolumes
+	}
+	return c, hc, nil
 }
