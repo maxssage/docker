@@ -44,16 +44,27 @@ type Config struct {
 func DecodeContainerConfig(src io.Reader) (*Config, *HostConfig, error) {
 	decoder := json.NewDecoder(src)
 
-	var w ContainerConfigWrapper
-	if err := decoder.Decode(&w); err != nil {
+	var (
+		w   ContainerConfigWrapper
+		err error
+	)
+	if err = decoder.Decode(&w); err != nil {
 		return nil, nil, err
 	}
 
 	hc := w.getHostConfig()
 
+	// As the CLI does not know the daemon platform, and volumes/bind mounts
+	// can only be accurately parsed on the daemon side, we need to
+	// parse them here, and move any volumes which come in in Config.Volumes
+	// into HostConfig.Binds.
+	if w.Config, hc, err = ParseVolumesIntoBinds(w.Config, hc); err != nil {
+		return nil, nil, err
+	}
+
 	// Certain parameters need daemon-side validation that cannot be done
 	// on the client, as only the daemon knows what is valid for the platform.
-	if err := ValidateNetMode(w.Config, hc); err != nil {
+	if err = ValidateNetMode(w.Config, hc); err != nil {
 		return nil, nil, err
 	}
 
