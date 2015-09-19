@@ -254,6 +254,7 @@ type HostConfig struct {
 	CgroupParent      string                // Parent cgroup.
 	ConsoleSize       [2]int                // Initial console size on Windows
 	VolumeDriver      string                // Name of the volume driver used to mount volumes
+	Isolated          bool                  // (Windows) Launch a Hyper-V Container if true, Windows Server container otherwise
 }
 
 // DecodeHostConfig creates a HostConfig based on the specified Reader.

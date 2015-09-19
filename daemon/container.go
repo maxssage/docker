@@ -271,8 +271,10 @@ func (container *Container) Start(ctx context.Context) (err error) {
 		}
 	}()
 
-	if err := container.Mount(ctx); err != nil {
-		return err
+	if !container.hostConfig.Isolated {
+		if err := container.Mount(ctx); err != nil {
+			return err
+		}
 	}
 
 	// Make sure NetworkMode has an acceptable value. We do this to ensure
@@ -347,8 +349,10 @@ func (container *Container) cleanup(ctx context.Context) {
 		logrus.Errorf("%s: Failed to umount ipc filesystems: %v", container.ID, err)
 	}
 
-	if err := container.Unmount(ctx); err != nil {
-		logrus.Errorf("%s: Failed to umount filesystem: %v", container.ID, err)
+	if !container.hostConfig.Isolated {
+		if err := container.Unmount(ctx); err != nil {
+			logrus.Errorf("%v: Failed to umount filesystem: %v", container.ID, err)
+		}
 	}
 
 	for _, eConfig := range container.execCommands.s {
