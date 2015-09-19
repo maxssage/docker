@@ -130,6 +130,7 @@ func populateCommand(ctx context.Context, c *Container, env []string) error {
 		FirstStart:     !c.HasBeenStartedBefore,
 		LayerFolder:    layerFolder,
 		LayerPaths:     layerPaths,
+		Isolated:       c.hostConfig.Isolated,
 	}
 
 	return nil
