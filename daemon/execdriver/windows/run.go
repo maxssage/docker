@@ -79,6 +79,7 @@ type containerInit struct {
 	MappedDirectories       []mappedDir // List of mapped directories (volumes/mounts)
 	SandboxPath             string      // Location of unmounted sandbox (used for Hyper-V containers, not Windows Server containers)
 	HvPartition             bool        // True if it a Hyper-V Container
+	HostName                string      // Hostname
 }
 
 // defaultOwner is a tag passed to HCS to allow it to differentiate between
@@ -110,6 +111,7 @@ func (d *Driver) Run(ctx context.Context, c *execdriver.Command, pipes *execdriv
 		LayerFolderPath:         c.LayerFolder,
 		ProcessorWeight:         c.Resources.CPUShares,
 		HvPartition:             c.Isolated,
+		HostName:                c.Hostname,
 	}
 
 	if c.Isolated {

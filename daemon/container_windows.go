@@ -133,6 +133,7 @@ func populateCommand(ctx context.Context, c *Container, env []string) error {
 		LayerFolder:    layerFolder,
 		LayerPaths:     layerPaths,
 		Isolated:       c.hostConfig.Isolated,
+		Hostname:       c.Config.Hostname,
 	}
 
 	return nil
