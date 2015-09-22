@@ -102,7 +102,7 @@ func (d *Driver) Run(ctx context.Context, c *execdriver.Command, pipes *execdriv
 
 	cu := &containerInit{
 		SystemType:              "Container",
-		Name:                    c.ID,
+		Name:                    c.Name,
 		Owner:                   defaultOwner,
 		IsDummy:                 dummyMode,
 		VolumePath:              c.Rootfs,
