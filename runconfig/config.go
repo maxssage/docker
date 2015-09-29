@@ -2,10 +2,12 @@ package runconfig
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 
 	"github.com/docker/docker/pkg/nat"
 	"github.com/docker/docker/pkg/stringutils"
+	"github.com/docker/docker/volume"
 )
 
 // Config contains the configuration data about a container.
@@ -42,13 +44,10 @@ type Config struct {
 // Be aware this function is not checking whether the resulted structs are nil,
 // it's your business to do so
 func DecodeContainerConfig(src io.Reader) (*Config, *HostConfig, error) {
-	decoder := json.NewDecoder(src)
+	var w ContainerConfigWrapper
 
-	var (
-		w   ContainerConfigWrapper
-		err error
-	)
-	if err = decoder.Decode(&w); err != nil {
+	decoder := json.NewDecoder(src)
+	if err := decoder.Decode(&w); err != nil {
 		return nil, nil, err
 	}
 
@@ -58,13 +57,27 @@ func DecodeContainerConfig(src io.Reader) (*Config, *HostConfig, error) {
 	// can only be accurately parsed on the daemon side, we need to
 	// parse them here, and move any volumes which come in in Config.Volumes
 	// into HostConfig.Binds.
-	if w.Config, hc, err = ParseVolumesIntoBinds(w.Config, hc); err != nil {
-		return nil, nil, err
+	if w.Config != nil && hc != nil {
+		for bind := range w.Config.Volumes {
+			mp, err := volume.ParseMountSpec(bind, hc.VolumeDriver)
+			if err != nil {
+				return nil, nil, fmt.Errorf("Unrecognised volume spec: %v", err)
+			}
+			if len(mp.Source) > 0 {
+				// After creating the bind mount (one in which a host directory is specified),
+				// we want to delete it from the config.Volumes values because we do not want
+				// bind mounts being committed to image configs.
+				// Note the spec can be one of source:destination:mode, destination,
+				// or source:destination
+				hc.Binds = append(hc.Binds, bind)
+				delete(w.Config.Volumes, bind)
+			}
+		}
 	}
 
 	// Certain parameters need daemon-side validation that cannot be done
 	// on the client, as only the daemon knows what is valid for the platform.
-	if err = ValidateNetMode(w.Config, hc); err != nil {
+	if err := ValidateNetMode(w.Config, hc); err != nil {
 		return nil, nil, err
 	}
 

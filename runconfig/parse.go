@@ -12,7 +12,6 @@ import (
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/docker/pkg/stringutils"
 	"github.com/docker/docker/pkg/units"
-	"github.com/docker/docker/volume"
 )
 
 var (
@@ -504,32 +503,4 @@ func ParseDevice(device string) (DeviceMapping, error) {
 		CgroupPermissions: permissions,
 	}
 	return deviceMapping, nil
-}
-
-// ParseVolumesIntoBinds parses any volumes passed by the client and moves any
-// volumes which are in Config.Volumes into HostConfig.Binds.
-func ParseVolumesIntoBinds(c *Config, hc *HostConfig) (*Config, *HostConfig, error) {
-	if c != nil && hc != nil {
-		newVolumes := c.Volumes
-		for bind := range newVolumes {
-			var (
-				mp  *volume.MountPoint
-				err error
-			)
-			if mp, err = volume.ParseMountSpec(bind, hc.VolumeDriver); err != nil {
-				return nil, nil, fmt.Errorf("Unrecognised volume spec: %v", err)
-			}
-			if len(mp.Source) > 0 {
-				// After creating the bind mount (one in which a host directory is specified),
-				// we want to delete it from the Config.Volumes values because we do not want
-				// bind mounts being committed to image configs.
-				// Note the spec can be one of hostdir:containerpath:mode, containerpath,
-				// or hostdir:containerpath
-				hc.Binds = append(hc.Binds, bind)
-				delete(newVolumes, bind)
-			}
-		}
-		c.Volumes = newVolumes
-	}
-	return c, hc, nil
 }

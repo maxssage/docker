@@ -23,7 +23,9 @@ func TestGetDriver(t *testing.T) {
 	}
 }
 
-type tpms struct {
+// testParseMountSpec is a structure used by TestParseMountSpecSplit for
+// specifying test cases for the ParseMountSpec() function.
+type testParseMountSpec struct {
 	bind      string
 	driver    string
 	expDest   string
@@ -35,21 +37,9 @@ type tpms struct {
 }
 
 func TestParseMountSpecSplit(t *testing.T) {
-	var cases []tpms
-	if runtime.GOOS != "windows" {
-		cases = []tpms{
-			{"/tmp:/tmp1", "", "/tmp1", "/tmp", "", "", true, false},
-			{"/tmp:/tmp2:ro", "", "/tmp2", "/tmp", "", "", false, false},
-			{"/tmp:/tmp3:rw", "", "/tmp3", "/tmp", "", "", true, false},
-			{"/tmp:/tmp4:foo", "", "", "", "", "", false, true},
-			{"name:/named1", "", "/named1", "", "name", "local", true, false},
-			{"name:/named2", "external", "/named2", "", "name", "external", true, false},
-			{"name:/named3:ro", "local", "/named3", "", "name", "local", false, false},
-			{"local/name:/tmp:rw", "", "/tmp", "", "local/name", "local", true, false},
-			{"/tmp:tmp", "", "", "", "", "", true, true},
-		}
-	} else {
-		cases = []tpms{
+	var cases []testParseMountSpec
+	if runtime.GOOS == "windows" {
+		cases = []testParseMountSpec{
 			{`c:\:d:`, "local", `d:`, `c:\`, ``, "", true, false},
 			{`c:\:d:\`, "local", `d:\`, `c:\`, ``, "", true, false},
 			// TODO Windows post TP4 - Add readonly support {`c:\:d:\:ro`, "local", `d:\`, `c:\`, ``, "", false, false},
@@ -60,6 +50,18 @@ func TestParseMountSpecSplit(t *testing.T) {
 			// TODO Windows post TP4 - Add readonly support {`name:d::ro`, "local", `d:`, ``, `name`, "local", false, false},
 			{`name:c:`, "", ``, ``, ``, "", true, true},
 			{`driver/name:c:`, "", ``, ``, ``, "", true, true},
+		}
+	} else {
+		cases = []testParseMountSpec{
+			{"/tmp:/tmp1", "", "/tmp1", "/tmp", "", "", true, false},
+			{"/tmp:/tmp2:ro", "", "/tmp2", "/tmp", "", "", false, false},
+			{"/tmp:/tmp3:rw", "", "/tmp3", "/tmp", "", "", true, false},
+			{"/tmp:/tmp4:foo", "", "", "", "", "", false, true},
+			{"name:/named1", "", "/named1", "", "name", "local", true, false},
+			{"name:/named2", "external", "/named2", "", "name", "external", true, false},
+			{"name:/named3:ro", "local", "/named3", "", "name", "local", false, false},
+			{"local/name:/tmp:rw", "", "/tmp", "", "local/name", "local", true, false},
+			{"/tmp:tmp", "", "", "", "", "", true, true},
 		}
 	}
 
