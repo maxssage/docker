@@ -352,6 +352,8 @@ func (container *Container) cleanup() {
 	container.unmountVolumes(false)
 }
 
+// JJH After finished unraveling - this can be moved to Unix.
+
 // killSig sends the container the given signal. This wrapper for the
 // host specific kill command prepares the container before attempting
 // to send the signal. An error is returned if the container is paused
@@ -382,7 +384,7 @@ func (container *Container) killSig(sig int) error {
 		return nil
 	}
 
-	if err := container.daemon.kill(container, sig); err != nil {
+	if err := container.daemon.kill(container, sig, 0); err != nil {
 		return err
 	}
 	container.logEvent("kill")

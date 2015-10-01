@@ -798,6 +798,9 @@ func NewDaemon(config *Config, registryService *registry.Service) (daemon *Daemo
 func (daemon *Daemon) Shutdown() error {
 	daemon.shutdown = true
 	if daemon.containers != nil {
+
+		// TODO Windows: Make a Windows version of this and factor out.
+
 		group := sync.WaitGroup{}
 		logrus.Debug("starting clean shutdown of all containers...")
 		for _, container := range daemon.List() {
@@ -808,7 +811,7 @@ func (daemon *Daemon) Shutdown() error {
 
 				go func() {
 					defer group.Done()
-					// TODO(windows): Handle docker restart with paused containers
+					// TODO Windows: Handle docker restart with paused containers
 					if c.isPaused() {
 						// To terminate a process in freezer cgroup, we should send
 						// SIGTERM to this process then unfreeze it, and the process will
@@ -819,7 +822,7 @@ func (daemon *Daemon) Shutdown() error {
 							logrus.Warnf("System does not support SIGTERM")
 							return
 						}
-						if err := daemon.kill(c, int(sig)); err != nil {
+						if err := daemon.kill(c, int(sig), 10); err != nil {
 							logrus.Debugf("sending SIGTERM to container %s with error: %v", c.ID, err)
 							return
 						}
@@ -834,7 +837,7 @@ func (daemon *Daemon) Shutdown() error {
 								logrus.Warnf("System does not support SIGKILL")
 								return
 							}
-							daemon.kill(c, int(sig))
+							daemon.kill(c, int(sig), 10)
 						}
 					} else {
 						// If container failed to exit in 10 seconds of SIGTERM, then using the force
@@ -909,10 +912,6 @@ func (daemon *Daemon) run(c *Container, pipes *execdriver.Pipes, startCallback e
 		return c.setNetworkNamespaceKey(pid)
 	})
 	return daemon.execDriver.Run(c.command, pipes, hooks)
-}
-
-func (daemon *Daemon) kill(c *Container, sig int) error {
-	return daemon.execDriver.Kill(c.command, sig)
 }
 
 func (daemon *Daemon) stats(c *Container) (*execdriver.ResourceStats, error) {

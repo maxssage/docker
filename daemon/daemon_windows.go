@@ -154,3 +154,8 @@ func (daemon *Daemon) newBaseContainer(id string) Container {
 func (daemon *Daemon) cleanupMounts() error {
 	return nil
 }
+
+func (daemon *Daemon) kill(c *Container, sig int, timeout int) error {
+	c.command.KillTimeout = timeout
+	return daemon.execDriver.Kill(c.command, sig)
+}

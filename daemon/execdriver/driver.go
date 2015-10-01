@@ -220,4 +220,5 @@ type Command struct {
 	FirstStart         bool              `json:"first_start"`
 	LayerPaths         []string          `json:"layer_paths"` // Windows needs to know the layer paths and folder for a command
 	LayerFolder        string            `json:"layer_folder"`
+	KillTimeout        int               `json:"kill_timeout"` // Timeouts for killing a container on Windows are handled in the exec driver.
 }

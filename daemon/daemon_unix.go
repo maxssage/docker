@@ -560,3 +560,7 @@ func getDefaultRouteMtu() (int, error) {
 	}
 	return 0, errNoDefaultRoute
 }
+
+func (daemon *Daemon) kill(c *Container, sig int, timeout int) error {
+	return daemon.execDriver.Kill(c.command, sig)
+}
