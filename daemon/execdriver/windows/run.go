@@ -216,10 +216,10 @@ func (d *Driver) Run(c *execdriver.Command, pipes *execdriver.Pipes, hooks execd
 		logrus.Errorf("Failed to start compute system: %s", err)
 		return execdriver.ExitStatus{ExitCode: -1}, err
 	}
+
 	defer func() {
 		// Stop the container
-
-		if terminateMode {
+		if forceKill {
 			logrus.Debugf("Terminating container %s", c.ID)
 			if err := hcsshim.TerminateComputeSystem(c.ID); err != nil {
 				// IMPORTANT: Don't fail if fails to change state. It could already
@@ -233,7 +233,9 @@ func (d *Driver) Run(c *execdriver.Command, pipes *execdriver.Pipes, hooks execd
 				// IMPORTANT: Don't fail if fails to change state. It could already
 				// have been stopped through kill().
 				// Otherwise, the docker daemon will hang in job wait()
-				logrus.Warnf("Ignoring error from ShutdownComputeSystem %s", err)
+				if !strings.Contains(err.Error(), "shutdown is in progress") {
+					logrus.Warnf("Ignoring error from ShutdownComputeSystem %s", err)
+				}
 			}
 		}
 	}()

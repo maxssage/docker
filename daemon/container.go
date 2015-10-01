@@ -391,6 +391,7 @@ func (container *Container) killSig(sig int) error {
 
 // Wrapper aroung killSig() suppressing "no such process" error.
 func (container *Container) killPossiblyDeadProcess(sig int) error {
+	// TODO Windows. This wrapper is wrong for Windows.
 	err := container.killSig(sig)
 	if err == syscall.ESRCH {
 		logrus.Debugf("Cannot kill process (pid=%d) with signal %d: no such process.", container.getPID(), sig)

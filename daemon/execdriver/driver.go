@@ -75,7 +75,8 @@ type Driver interface {
 	// process exits and returns the exit code.
 	Exec(c *Command, processConfig *ProcessConfig, pipes *Pipes, hooks Hooks) (int, error)
 
-	// Kill sends signals to process in container.
+	// Kill sends signals to process in container on Unix, or calls
+	// HCS in Windows to stop the container
 	Kill(c *Command, sig int) error
 
 	// Pause pauses a container.
@@ -94,7 +95,7 @@ type Driver interface {
 	// GetPidsForContainer returns a list of pid for the processes running in a container.
 	GetPidsForContainer(id string) ([]int, error)
 
-	// Terminate kills a container by sending signal SIGKILL.
+	// Terminate forcibly kills a container.
 	Terminate(c *Command) error
 
 	// Clean removes all traces of container exec.
